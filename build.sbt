@@ -20,7 +20,7 @@ libraryDependencies ++= Seq(
   "org.scalatestplus.play" %% "scalatestplus-play" % "5.1.0"  % Test
 
 )
-scalacOptions += "-Xprint:typer"
+libraryDependencies += ws
 
 
 
