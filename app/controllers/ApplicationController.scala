@@ -46,10 +46,15 @@ class ApplicationController @Inject()(
   }
 
   def delete(id: String): Action[AnyContent] = Action.async { implicit request =>
-    dataRepository.delete(id).map { deleteResult =>
-      if (deleteResult.getDeletedCount > 0) Accepted else NotFound
+    if (id.trim.isEmpty) {
+      Future.successful(BadRequest(Json.obj("error" -> "Invalid ID")))
+    } else {
+      dataRepository.delete(id).map { deleteResult =>
+        if (deleteResult.getDeletedCount > 0) Accepted else NotFound
+      }
     }
   }
+
 
 
 

@@ -80,44 +80,44 @@ class ApplicationControllerSpec extends BaseSpecWithApplication {
       status(updateResult) shouldBe ACCEPTED
       // Additional assertions can be added here to verify the updated data
     }
-  }
 
-  "ApplicationController .update" should {
+
     "return BadRequest for an invalid update request" in {
       val invalidUpdateRequest: FakeRequest[JsValue] = FakeRequest(PUT, s"/api/${dataModel._id}").withBody(Json.obj())
       val updateResult: Future[Result] = TestApplicationController.update(dataModel._id)(invalidUpdateRequest)
 
       status(updateResult) shouldBe BAD_REQUEST
     }
+
   }
-
-
-
-  "ApplicationController .update" should {
-    "update an existing DataModel" in {
+  "ApplicationController .delete" should {
+    "delete an existing DataModel" in {
       // First, create a DataModel
       val createRequest: FakeRequest[JsValue] = FakeRequest(POST, "/api").withBody(Json.toJson(dataModel))
       val createdResult: Future[Result] = TestApplicationController.create()(createRequest)
       status(createdResult) shouldBe CREATED
 
-      // Now, update the DataModel
-      val updatedDataModel = dataModel.copy(name = "updated name")
-      val updateRequest: FakeRequest[JsValue] = FakeRequest(PUT, s"/api/${dataModel._id}").withBody(Json.toJson(updatedDataModel))
-      val updateResult: Future[Result] = TestApplicationController.update(dataModel._id)(updateRequest)
-
-      status(updateResult) shouldBe ACCEPTED
-      // Additional assertions can be added here to verify the updated data
+      // Now, delete the DataModel
+      val deleteResult: Future[Result] = TestApplicationController.delete(dataModel._id)(FakeRequest())
+      status(deleteResult) shouldBe ACCEPTED
     }
+
+      "return BadRequest for an invalid delete request" in {
+        val invalidDeleteResult: Future[Result] = TestApplicationController.delete("")(FakeRequest())
+
+        status(invalidDeleteResult) shouldBe BAD_REQUEST
+      }
+
+
+
+
+
+
+
   }
 
-  "ApplicationController .update" should {
-    "return BadRequest for an invalid update request" in {
-      val invalidUpdateRequest: FakeRequest[JsValue] = FakeRequest(PUT, s"/api/${dataModel._id}").withBody(Json.obj())
-      val updateResult: Future[Result] = TestApplicationController.update(dataModel._id)(invalidUpdateRequest)
 
-      status(updateResult) shouldBe BAD_REQUEST
-    }
-  }
+
 
 
 }
