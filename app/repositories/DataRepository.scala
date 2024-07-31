@@ -4,7 +4,7 @@ import controllers.models.{APIError, DataModel}
 import org.mongodb.scala.bson.conversions.Bson
 import org.mongodb.scala.model.Filters.empty
 import org.mongodb.scala.model._
-import org.mongodb.scala.result
+import play.api.libs.json.JsValue
 import uk.gov.hmrc.mongo.MongoComponent
 import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 
@@ -12,7 +12,7 @@ import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class DataRepository @Inject()(
+class DataRepository @Inject() (
                                 mongoComponent: MongoComponent
                               )(implicit ec: ExecutionContext) extends PlayMongoRepository[DataModel](
   collectionName = "dataModels",
@@ -22,7 +22,7 @@ class DataRepository @Inject()(
     Indexes.ascending("_id")
   )),
   replaceIndexes = false
-) {
+) with MockRepositoryTrait {
 
   def index(): Future[Either[APIError.BadAPIResponse, Seq[DataModel]]] =
     collection.find().toFuture().map {
@@ -73,5 +73,22 @@ class DataRepository @Inject()(
 
 
   def deleteAll(): Future[Unit] = collection.deleteMany(empty()).toFuture().map(_ => ()) //Hint: needed for tests
+
+  def findByName(name: String): Future[Either[APIError.BadAPIResponse, Seq[DataModel]]] = {
+    val filter = Filters.regex("name", s"(?i)$name") // Case-insensitive search
+    collection.find(filter).toFuture().map { books =>
+      if (books.nonEmpty) Right(books)
+      else Left(APIError.BadAPIResponse(404, s"No books found with name: $name"))
+    }
+  }
+  def updateField(id: String, fieldName: String, newValue: JsValue): Future[Either[APIError.BadAPIResponse, Long]] = {
+    val update = Updates.set(fieldName, newValue)
+    collection.updateOne(byID(id), update).toFuture().map { updateResult =>
+      if (updateResult.getModifiedCount > 0) Right(updateResult.getModifiedCount)
+      else Left(APIError.BadAPIResponse(404, "DataModel not found or not modified"))
+    }
+  }
+
+
 
 }
