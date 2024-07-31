@@ -21,6 +21,7 @@ libraryDependencies ++= Seq(
 
 )
 libraryDependencies += ws
+libraryDependencies += ("org.typelevel"                %% "cats-core"                 % "2.3.0")
 
 
 

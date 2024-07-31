@@ -19,9 +19,10 @@ class ApplicationController @Inject()(
   def index(): Action[AnyContent] = Action.async { implicit request =>
     dataRepository.index().map {
       case Right(items: Seq[DataModel]) => Ok(Json.toJson(items))
-      case Left(error) => Status(error)(Json.toJson("Unable to find any books"))
+      case Left(error) => Status(error.httpResponseStatus)(Json.toJson(error.reason))
     }
   }
+
 
   def create(): Action[JsValue] = Action.async(parse.json) { implicit request =>
     request.body.validate[DataModel] match {
@@ -58,13 +59,15 @@ class ApplicationController @Inject()(
     }
   }
 
-  // New method to interact with LibraryService and get Google Books data
+
   def getGoogleBook(search: String, term: String): Action[AnyContent] = Action.async { implicit request =>
-    libraryService.getGoogleBook(search = search, term = term).map { book =>
-      Ok(Json.toJson(book)(Book.format)) // Ensure LibraryBook.format is used here
-    } recover {
-      case ex: Exception =>
-        InternalServerError(Json.toJson(s"Error fetching book data: ${ex.getMessage}"))
+    libraryService.getGoogleBook(search = search, term = term).value.map {
+      case Right(book) =>
+        Ok(Json.toJson(book)) // Returns the book in JSON format with a 200 OK status
+      case Left(error) =>
+        InternalServerError(Json.toJson(s"Error fetching book: ${error.reason}")) // Returns an error message with a 500 Internal Server Error status
     }
   }
+
+
 }
