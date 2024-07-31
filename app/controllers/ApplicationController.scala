@@ -20,6 +20,8 @@ class ApplicationController @Inject()(
     dataRepository.index().map {
       case Right(items: Seq[DataModel]) => Ok(Json.toJson(items))
       case Left(error) => Status(error.httpResponseStatus)(Json.toJson(error.reason))
+    }.recover {
+      case ex: Throwable => InternalServerError(Json.toJson(s"Unexpected error: ${ex.getMessage}"))
     }
   }
 
@@ -27,10 +29,18 @@ class ApplicationController @Inject()(
   def create(): Action[JsValue] = Action.async(parse.json) { implicit request =>
     request.body.validate[DataModel] match {
       case JsSuccess(dataModel, _) =>
-        dataRepository.create(dataModel).map(_ => Created)
-      case JsError(_) => Future.successful(BadRequest)
+        dataRepository.create(dataModel).map {
+          case Right(createdDataModel) => Created(Json.toJson(createdDataModel))
+          case Left(error) => Status(error.httpResponseStatus)(Json.toJson(error.reason))
+        }.recover {
+          case ex: Throwable => InternalServerError(Json.toJson(s"Unexpected error: ${ex.getMessage}"))
+        }
+      case JsError(errors) =>
+        Future.successful(BadRequest(Json.obj("error" -> "Invalid data format", "details" -> errors.toString)))
     }
   }
+
+
 
   def read(id: String): Action[AnyContent] = Action.async { implicit request =>
     dataRepository.read(id).map {

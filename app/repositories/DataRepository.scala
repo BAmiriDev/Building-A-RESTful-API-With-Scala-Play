@@ -30,31 +30,47 @@ class DataRepository @Inject()(
       case _ => Left(APIError.BadAPIResponse(404, "Books cannot be found"))
     }
 
-  def create(book: DataModel): Future[DataModel] =
+  def create(book: DataModel): Future[Either[APIError.BadAPIResponse, DataModel]] =
     collection
       .insertOne(book)
       .toFuture()
-      .map(_ => book)
+      .map { _ =>
+        Right(book)
+      }.map(_ => Right(book)) // Assuming successful insertion means the book was created
+
 
   private def byID(id: String): Bson =
     Filters.and(
       Filters.equal("_id", id)
     )
 
-  def read(id: String): Future[Option[DataModel]] =
-    collection.find(byID(id)).headOption
 
-  def update(id: String, book: DataModel): Future[result.UpdateResult] =
+  def read(id: String): Future[Either[APIError.BadAPIResponse, DataModel]] =
+    collection.find(byID(id)).headOption.map {
+      case Some(dataModel) => Right(dataModel)
+      case None => Left(APIError.BadAPIResponse(404, "DataModel not found"))
+    }
+
+
+  def update(id: String, book: DataModel): Future[Either[APIError.BadAPIResponse, Long]] =
     collection.replaceOne(
       filter = byID(id),
       replacement = book,
-      options = new ReplaceOptions().upsert(true) //What happens when we set this to false?
-    ).toFuture()
+      options = new ReplaceOptions().upsert(true)
+    ).toFuture().map { updateResult =>
+      if (updateResult.getModifiedCount > 0) Right(updateResult.getModifiedCount)
+      else Left(APIError.BadAPIResponse(404, "DataModel not found or not modified"))
+    }
 
-  def delete(id: String): Future[result.DeleteResult] =
+
+  def delete(id: String): Future[Either[APIError.BadAPIResponse, Long]] =
     collection.deleteOne(
       filter = byID(id)
-    ).toFuture()
+    ).toFuture().map { deleteResult =>
+      if (deleteResult.getDeletedCount > 0) Right(deleteResult.getDeletedCount)
+      else Left(APIError.BadAPIResponse(404, "DataModel not found"))
+    }
+
 
   def deleteAll(): Future[Unit] = collection.deleteMany(empty()).toFuture().map(_ => ()) //Hint: needed for tests
 
