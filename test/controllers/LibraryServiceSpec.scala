@@ -1,57 +1,52 @@
 import connectors.LibraryConnector
-import controllers.models.Book
+import controllers.models.{Book, APIError}
 import org.scalamock.scalatest.MockFactory
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatest.matchers.should.Matchers
 import org.scalatest.wordspec.AnyWordSpec
 import play.api.libs.json.{JsValue, Json, OFormat}
-import play.api.test.Helpers.stubControllerComponents
-
-import scala.concurrent.{ExecutionContext, Future}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import services.LibraryService
+import cats.data.EitherT
+import scala.concurrent.{ExecutionContext, Future}
 
 class LibraryServiceSpec extends AnyWordSpec with Matchers with MockFactory with ScalaFutures with GuiceOneAppPerSuite {
 
-  // Get the ExecutionContext from the injected components
   implicit val executionContext: ExecutionContext = app.injector.instanceOf[ExecutionContext]
   val mockConnector: LibraryConnector = mock[LibraryConnector]
   val testService = new LibraryService(mockConnector)
 
-  val gameOfThrones: JsValue = Json.obj(
-    "_id" -> "someId",
-    "name" -> "A Game of Thrones",
-    "description" -> "The best book!!!",
-    "pageCount" -> 100
+  // Define a Book instance for testing
+  val book: Book = Book(
+    title = "A Game of Thrones",
+    authors = List("George R. R. Martin"),
+    description = "The best book!!!",
+    isbn = "someId"
   )
 
-  "getGoogleBook" should {
-    val url: String = "testUrl"
+  "LibraryService" should {
 
     "return a book" in {
       (mockConnector.get[Book](_: String)(_: OFormat[Book], _: ExecutionContext))
-        .expects(url, *, *)
-        .returning(Future.successful(gameOfThrones.as[Book]))
+        .expects(*, *, *)
+        .returning(EitherT.rightT(book)) // Using a Book instance
         .once()
 
-      whenReady(testService.getGoogleBook(urlOverride = Some(url), search = "", term = "")) { result =>
-        result shouldEqual gameOfThrones.as[Book]
+      whenReady(testService.getGoogleBook(search = "game", term = "thrones").value) { result =>
+        result shouldEqual Right(book) // Expecting a Book instance
       }
     }
+
     "return an error" in {
-      val url: String = "testUrl"
-
+      val error = APIError.BadAPIResponse(500, "Internal Server Error")
       (mockConnector.get[Book](_: String)(_: OFormat[Book], _: ExecutionContext))
-        .expects(url, *, *)
-        .returning(Future.failed(new RuntimeException("Some error occurred"))) // Simulate an error
+        .expects(*, *, *)
+        .returning(EitherT.leftT(error))
         .once()
 
-      whenReady(testService.getGoogleBook(urlOverride = Some(url), search = "", term = "").failed) { result =>
-        result shouldBe a[RuntimeException]
-        result.getMessage shouldBe "Some error occurred"
+      whenReady(testService.getGoogleBook(search = "invalid", term = "term").value) { result =>
+        result shouldEqual Left(error)
       }
     }
-
-
   }
 }
