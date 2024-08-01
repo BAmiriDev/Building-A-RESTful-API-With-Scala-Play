@@ -34,9 +34,9 @@ class DataRepository @Inject() (
     collection
       .insertOne(book)
       .toFuture()
-      .map { _ =>
-        Right(book)
-      }.map(_ => Right(book)) // Assuming successful insertion means the book was created
+      .map { _ =>Right(book)
+      }.map(_ => Right(book))
+
 
 
   private def byID(id: String): Bson =
@@ -47,9 +47,14 @@ class DataRepository @Inject() (
 
   def read(id: String): Future[Either[APIError.BadAPIResponse, DataModel]] =
     collection.find(byID(id)).headOption.map {
-      case Some(dataModel) => Right(dataModel)
+      case Some(dataModel) =>
+        val modelWithIsbn = dataModel.copy(isbn = if (dataModel.isbn.isEmpty) "default_isbn" else dataModel.isbn)
+        Right(modelWithIsbn)
       case None => Left(APIError.BadAPIResponse(404, "DataModel not found"))
     }
+
+
+
 
 
   def update(id: String, book: DataModel): Future[Either[APIError.BadAPIResponse, Long]] =
