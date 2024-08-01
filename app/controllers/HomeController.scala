@@ -25,5 +25,6 @@ class HomeController @Inject()(val controllerComponents: ControllerComponents) e
     Future.successful(Ok(views.html.index()))
 
   }
+
 }
 

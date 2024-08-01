@@ -18,4 +18,6 @@ DELETE  /api/:id          controllers.ApplicationController.delete(id: String)
    GET     /books/name/:name       controllers.ApplicationController.findByName(name: String)
 PATCH   /books/:id/:fieldName    controllers.ApplicationController.updateField(id: String, fieldName: String)
 GET   /library/google/:isbn   controllers.ApplicationController.getByISBN(isbn: String)
+GET     /example                           controllers.ApplicationController.example(dataModel: DataModel)
+
 

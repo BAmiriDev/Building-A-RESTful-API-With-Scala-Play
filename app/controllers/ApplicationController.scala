@@ -110,6 +110,10 @@ class ApplicationController @Inject()(
 
 
 
+  def example(dataModel: DataModel): Action[AnyContent] = Action.async { implicit request =>
+    Future.successful(Ok(views.html.example(dataModel)))
+  }
+
 
 
 
