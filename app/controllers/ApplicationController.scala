@@ -85,6 +85,7 @@ class ApplicationController @Inject()(
   }
 
 
+
   def updateField(id: String, fieldName: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
     (request.body \ "value").validate[JsValue] match {
       case JsSuccess(newValue, _) =>
@@ -110,9 +111,18 @@ class ApplicationController @Inject()(
 
 
 
-  def example(dataModel: DataModel): Action[AnyContent] = Action.async { implicit request =>
-    Future.successful(Ok(views.html.example(dataModel)))
+  def example(id: String): Action[AnyContent] = Action.async { implicit request =>
+    dataRepository.read(id).map {
+      case Right(dataModel) => Ok(views.html.example(dataModel))
+      case Left(error) =>
+        val statusCode = error match {
+          case APIError.BadAPIResponse(404, _) => NOT_FOUND
+          case _ => INTERNAL_SERVER_ERROR
+        }
+        Status(statusCode)(Json.toJson(error.reason))
+    }
   }
+
 
 
 

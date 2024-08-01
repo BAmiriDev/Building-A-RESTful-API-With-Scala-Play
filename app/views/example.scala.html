@@ -1,9 +1,9 @@
 @import controllers.models.DataModel
 @(dataModel: DataModel)
 
-@main("Find Book") {
+@main("Book Details") {
 <h1>@dataModel.name</h1>
-<p>Description: @dataModel.description</p>
+<p>@dataModel.description</p>
 <p>Page Count: @dataModel.pageCount</p>
 <p>ISBN: @dataModel.isbn</p>
 }
