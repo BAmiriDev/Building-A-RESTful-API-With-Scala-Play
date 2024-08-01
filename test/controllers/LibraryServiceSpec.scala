@@ -1,3 +1,5 @@
+package controllers
+
 import connectors.LibraryConnector
 import controllers.models.{Book, APIError}
 import org.scalamock.scalatest.MockFactory

@@ -21,6 +21,17 @@ class LibraryService @Inject()(connector: LibraryConnector) {
       }
     }
   }
+  def getByISBN(isbn: String)(implicit ec: ExecutionContext): EitherT[Future, APIError, Book] = {
+    val url = s"https://www.googleapis.com/books/v1/volumes?q=isbn:$isbn"
+    EitherT {
+      connector.get[Book](url).value.recover {
+        case e: Throwable => Left(APIError.BadAPIResponse(500, e.getMessage))
+      }
+    }
+  }
+
+
+
 }
 
 

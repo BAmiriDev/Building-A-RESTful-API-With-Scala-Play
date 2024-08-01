@@ -7,7 +7,7 @@ import org.scalatestplus.mockito.MockitoSugar
 import org.mockito.Mockito._
 import org.mockito.ArgumentMatchers._
 import play.api.libs.json.JsValue
-import repositories.DataRepository
+import repositories.{DataRepository, MockRepositoryTrait}
 import controllers.models.{APIError, DataModel}
 import org.scalamock.clazz.MockImpl.mock
 import services.RepositoryService
@@ -17,15 +17,17 @@ import scala.concurrent.{ExecutionContext, Future}
 class RepositoryServiceSpec extends AnyWordSpec with Matchers with ScalaFutures with MockitoSugar {
 
   implicit val ec: ExecutionContext = ExecutionContext.global
-  val mockRepository: DataRepository = mock[DataRepository]
-  val repositoryService = new RepositoryService(mockRepository)
+  val mockRepository: MockRepositoryTrait = mock[MockRepositoryTrait]
+  val repositoryService = new RepositoryService(mockRepository)// Pass the mocked trait
 
   val sampleDataModel: DataModel = DataModel(
     _id = "abcd",
     name = "test name",
     description = "test description",
-    pageCount = 100
+    pageCount = 100,
+    isbn = "1234567890"
   )
+
 
   "RepositoryService" should {
     "index - return all books" in {

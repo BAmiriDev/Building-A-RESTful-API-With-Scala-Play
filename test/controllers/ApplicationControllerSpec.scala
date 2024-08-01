@@ -21,7 +21,8 @@ class ApplicationControllerSpec extends BaseSpecWithApplication {
     _id = "abcd",
     name = "test name",
     description = "test description",
-    pageCount = 100
+    pageCount = 100,
+    isbn = "1234567890"
   )
 
   override def beforeEach(): Unit = {

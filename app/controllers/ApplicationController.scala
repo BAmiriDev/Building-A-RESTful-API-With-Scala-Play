@@ -37,9 +37,11 @@ class ApplicationController @Inject()(
   def read(id: String): Action[AnyContent] = Action.async { implicit request =>
     dataRepository.read(id).map {
       case Right(dataModel) => Ok(Json.toJson(dataModel))
-      case Left(error) => Status(error.httpResponseStatus)(Json.toJson(error.reason))
+      case Left(error) => Status(if (error.upstreamStatus == 404) NOT_FOUND else INTERNAL_SERVER_ERROR)(Json.toJson(error.reason))
     }
   }
+
+
 
   def update(id: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
     request.body.validate[DataModel] match {
@@ -78,9 +80,11 @@ class ApplicationController @Inject()(
   def findByName(name: String): Action[AnyContent] = Action.async { implicit request =>
     dataRepository.findByName(name).map {
       case Right(items) => Ok(Json.toJson(items))
-      case Left(error) => Status(error.httpResponseStatus)(Json.toJson(error.reason))
+      case Left(error) => Status(if (error.upstreamStatus == 404) NOT_FOUND else INTERNAL_SERVER_ERROR)(Json.toJson(error.reason))
     }
   }
+
+
   def updateField(id: String, fieldName: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
     (request.body \ "value").validate[JsValue] match {
       case JsSuccess(newValue, _) =>
@@ -91,6 +95,21 @@ class ApplicationController @Inject()(
       case JsError(errors) => Future.successful(BadRequest(Json.obj("errors" -> errors.toString)))
     }
   }
+
+  def getByISBN(isbn: String): Action[AnyContent] = Action.async { implicit request =>
+    libraryService.getByISBN(isbn).value.map {
+      case Right(book) => Ok(Json.toJson(book))
+      case Left(error) =>
+        val statusCode = error match {
+          case APIError.BadAPIResponse(404, _) => NOT_FOUND
+          case _ => INTERNAL_SERVER_ERROR
+        }
+        Status(statusCode)(Json.toJson(error.reason))
+    }
+  }
+
+
+
 
 
 
