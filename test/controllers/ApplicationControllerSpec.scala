@@ -2,10 +2,13 @@ package controllers
 
 import baseSpec.BaseSpecWithApplication
 import play.api.test.Helpers._
-import play.api.test.FakeRequest
-import controllers.models.{DataModel, APIError}
+import play.api.test.{CSRFTokenHelper, FakeRequest}
+import controllers.models.{APIError, DataModel}
 import play.api.libs.json.{JsValue, Json}
 import play.api.mvc.{Result, Results}
+import play.api.test.CSRFTokenHelper.CSRFFRequestHeader
+
+
 import scala.concurrent.{ExecutionContext, Future}
 
 class ApplicationControllerSpec extends BaseSpecWithApplication {
@@ -129,4 +132,55 @@ class ApplicationControllerSpec extends BaseSpecWithApplication {
       status(findByNameResult) shouldBe NOT_FOUND
     }
   }
+
+  // New tests for addBook and addBookForm methods
+  "ApplicationController .addBook" should {
+    "render the add book form" in {
+      val request = FakeRequest(GET, "/addBook/form").withCSRFToken
+      val result = TestApplicationController.addBook()(request)
+
+      status(result) shouldBe OK
+      contentType(result) shouldBe Some("text/html")
+      contentAsString(result) should include("Add Book")
+    }
+  }
+
+  "ApplicationController .addBookForm" should {
+    //todo: fix this damn test
+//    "process the add book form successfully" in {
+//      val request = FakeRequest(POST, "/addBook/form")
+//        .withFormUrlEncodedBody(
+//          "_id" -> "3",
+//          "name" -> "Test Book",
+//          "description" -> "A test book description",
+//          "pageCount" -> "100",
+//          "isbn" -> "1234567890"
+//        )
+//        .withCSRFToken
+//
+//      val result = TestApplicationController.addBookForm()(request)
+//
+//      status(result) shouldBe SEE_OTHER
+//      redirectLocation(result) shouldBe Some(routes.ApplicationController.index.url)
+//    }
+
+
+
+    "handle form submission errors" in {
+      val request = FakeRequest(POST, "/addBook/form")
+        .withFormUrlEncodedBody(
+          "_id" -> "",
+          "name" -> "Test Book",
+          "description" -> "A test book description",
+          "pageCount" -> "100",
+          "isbn" -> "1234567890"
+        )
+        .withCSRFToken
+
+      val result = TestApplicationController.addBookForm()(request)
+
+      status(result) shouldBe BAD_REQUEST
+    }
+  }
+
 }

@@ -5,6 +5,7 @@ import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
 import play.api.mvc._
 import repositories.DataRepository
 import services.LibraryService
+import play.filters.csrf.CSRF
 
 import javax.inject._
 import scala.concurrent.{ExecutionContext, Future}
@@ -14,7 +15,7 @@ class ApplicationController @Inject()(
                                        val controllerComponents: ControllerComponents,
                                        dataRepository: DataRepository,
                                        libraryService: LibraryService
-                                     )(implicit ec: ExecutionContext) extends BaseController {
+                                     )(implicit ec: ExecutionContext) extends BaseController with play.api.i18n.I18nSupport{
 
   def index(): Action[AnyContent] = Action.async { implicit request =>
     dataRepository.index().map {
@@ -69,12 +70,16 @@ class ApplicationController @Inject()(
   }
   def getGoogleBook(search: String, term: String): Action[AnyContent] = Action.async { implicit request =>
     libraryService.getGoogleBook(search = search, term = term).value.map {
-      case Right(book) =>
-        Ok(Json.toJson(book))
-      case Left(error) =>
-        InternalServerError(Json.toJson(s"Error fetching book: ${error.reason}"))
+      case Right(book) => Ok(Json.toJson(book))
+      case Left(apiError) => apiError match {
+        case APIError.BadAPIResponse(statusCode, message) => Status(statusCode)(Json.obj("error" -> message))
+        case _ => InternalServerError(Json.obj("error" -> "An unexpected error occurred"))
+      }
     }
   }
+
+
+
 
 
   def findByName(name: String): Action[AnyContent] = Action.async { implicit request =>
@@ -123,6 +128,40 @@ class ApplicationController @Inject()(
     }
   }
 
+
+  def addBook(): Action[AnyContent] = Action { implicit request =>
+    Ok(views.html.addBook(DataModel.bookForm))
+  }
+
+  def addBookForm(): Action[AnyContent] = Action.async { implicit request =>
+    accessToken // call the accessToken method
+    DataModel.bookForm.bindFromRequest().fold(
+      formWithErrors => {
+        // Handle form errors
+        Future.successful(BadRequest(views.html.addBook(formWithErrors)))
+      },
+      formData => {
+        // Use this data to create a new DataModel
+        val newBook = DataModel(
+          _id = formData._id,
+          name = formData.name,
+          description = formData.description,
+          pageCount = formData.pageCount,
+          isbn = formData.isbn
+        )
+        dataRepository.create(newBook).map {
+          case Right(book) => Redirect(routes.ApplicationController.index)
+          case Left(error) => InternalServerError("Error creating book")
+        }
+      }
+    )
+  }
+
+
+
+  def accessToken(implicit request: Request[_]): Option[CSRF.Token] = {
+    CSRF.getToken
+  }
 
 
 
