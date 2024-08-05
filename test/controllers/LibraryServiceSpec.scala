@@ -1,53 +1,63 @@
 package controllers
 
-import connectors.LibraryConnector
-import controllers.models.{Book, APIError}
-import org.scalamock.scalatest.MockFactory
+import controllers.models.{APIError, Book}
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatest.matchers.should.Matchers
-import org.scalatest.wordspec.AnyWordSpec
-import play.api.libs.json.{JsValue, Json, OFormat}
 import org.scalatestplus.play.guice.GuiceOneAppPerSuite
-import services.LibraryService
-import cats.data.EitherT
+import org.scalatestplus.play.PlaySpec
+import org.scalamock.scalatest.MockFactory
+import play.api.libs.json.{JsValue, Json, OFormat}
+
 import scala.concurrent.{ExecutionContext, Future}
+import cats.data.EitherT
+import connectors.LibraryConnector
+import services.LibraryService
 
-class LibraryServiceSpec extends AnyWordSpec with Matchers with MockFactory with ScalaFutures with GuiceOneAppPerSuite {
+class LibraryServiceSpec extends PlaySpec with MockFactory with ScalaFutures with GuiceOneAppPerSuite {
 
-  implicit val executionContext: ExecutionContext = app.injector.instanceOf[ExecutionContext]
   val mockConnector: LibraryConnector = mock[LibraryConnector]
+  implicit val executionContext: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
   val testService = new LibraryService(mockConnector)
 
-  // Define a Book instance for testing
-  val book: Book = Book(
-    title = "A Game of Thrones",
-    authors = List("George R. R. Martin"),
-    description = "The best book!!!",
-    isbn = "someId"
+  val gameOfThrones: JsValue = Json.obj(
+    "_id" -> "someId",
+    "name" -> "A Game of Thrones",
+    "description" -> "The best book!!!",
+    "pageCount" -> 100
   )
 
-  "LibraryService" should {
+  "getGoogleBook" should {
 
-    "return a book" in {
+    "return a book when getGoogleBook is called" in {
+      val url: String = "testUrl"
+      val expectedBook = Book(
+        _id = "someId",
+        name = "A Game of Thrones",
+        description = "The best book!!!",
+        pageCount = 100,
+        isbn = "1234567890"
+
+      )
+
       (mockConnector.get[Book](_: String)(_: OFormat[Book], _: ExecutionContext))
-        .expects(*, *, *)
-        .returning(EitherT.rightT(book)) // Using a Book instance
+        .expects(url, *, *)
+        .returning(EitherT.rightT[Future, APIError](gameOfThrones.as[Book]))
         .once()
 
-      whenReady(testService.getGoogleBook(search = "game", term = "thrones").value) { result =>
-        result shouldEqual Right(book) // Expecting a Book instance
+      whenReady(testService.getGoogleBook(urlOverride = Some(url), search = "", term = "").value) { result =>
+        result mustBe Right(expectedBook)
       }
     }
 
-    "return an error" in {
-      val error = APIError.BadAPIResponse(500, "Internal Server Error")
+    "return an error when getGoogleBook is called" in {
+      val url: String = "testUrl"
+
       (mockConnector.get[Book](_: String)(_: OFormat[Book], _: ExecutionContext))
-        .expects(*, *, *)
-        .returning(EitherT.leftT(error))
+        .expects(url, *, *)
+        .returning(EitherT.leftT[Future, Book](APIError.BadAPIResponse(500, "API Error")))
         .once()
 
-      whenReady(testService.getGoogleBook(search = "invalid", term = "term").value) { result =>
-        result shouldEqual Left(error)
+      whenReady(testService.getGoogleBook(urlOverride = Some(url), search = "", term = "").value) { result =>
+        result mustBe Left(APIError.BadAPIResponse(500, "API Error"))
       }
     }
   }

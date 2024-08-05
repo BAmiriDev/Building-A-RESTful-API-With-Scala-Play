@@ -1,15 +1,16 @@
-// In services/RepositoryService.scala
+
 package services
+
 
 import controllers.models.{APIError, DataModel}
 import play.api.libs.json.JsValue
-import repositories.MockRepositoryTrait
+import repositories.DataRepository
 
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
 @Singleton
-class RepositoryService @Inject()(repository: MockRepositoryTrait)(implicit ec: ExecutionContext) {
+class RepositoryService @Inject()(repository: DataRepository)(implicit ec: ExecutionContext) {
 
   def index(): Future[Either[APIError.BadAPIResponse, Seq[DataModel]]] =
     repository.index()
@@ -36,4 +37,3 @@ class RepositoryService @Inject()(repository: MockRepositoryTrait)(implicit ec: 
     repository.updateField(id, fieldName, newValue)
 
 }
-

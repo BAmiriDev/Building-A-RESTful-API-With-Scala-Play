@@ -2,7 +2,7 @@ package repositories
 
 import controllers.models.{APIError, DataModel}
 import org.mongodb.scala.bson.conversions.Bson
-import org.mongodb.scala.model.Filters.empty
+import org.mongodb.scala.model.Filters.{empty, equal}
 import org.mongodb.scala.model._
 import play.api.libs.json.JsValue
 import uk.gov.hmrc.mongo.MongoComponent
@@ -17,7 +17,7 @@ class DataRepository @Inject() (
                               )(implicit ec: ExecutionContext) extends PlayMongoRepository[DataModel](
   collectionName = "dataModels",
   mongoComponent = mongoComponent,
-  domainFormat = DataModel.formats,
+  domainFormat = DataModel.format, // Ensure this is correctly referenced
   indexes = Seq(IndexModel(
     Indexes.ascending("_id")
   )),
@@ -45,13 +45,14 @@ class DataRepository @Inject() (
     )
 
 
-  def read(id: String): Future[Either[APIError.BadAPIResponse, DataModel]] =
-    collection.find(byID(id)).headOption.map {
-      case Some(dataModel) =>
-        val modelWithIsbn = dataModel.copy(isbn = if (dataModel.isbn.isEmpty) "default_isbn" else dataModel.isbn)
-        Right(modelWithIsbn)
+  def read(id: String): Future[Either[APIError.BadAPIResponse, DataModel]] = {
+    collection.find(equal("_id", id)).headOption().map {
+      case Some(dataModel) => Right(dataModel)
       case None => Left(APIError.BadAPIResponse(404, "DataModel not found"))
+    }.recover {
+      case e: Throwable => Left(APIError.BadAPIResponse(500, e.getMessage))
     }
+  }
 
 
 

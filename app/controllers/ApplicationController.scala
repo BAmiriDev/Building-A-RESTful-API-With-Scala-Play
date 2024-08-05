@@ -4,7 +4,7 @@ import controllers.models.{APIError, DataModel}
 import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
 import play.api.mvc._
 import repositories.DataRepository
-import services.LibraryService
+import services.{LibraryService, RepositoryService}
 import play.filters.csrf.CSRF
 
 import javax.inject._
@@ -14,7 +14,8 @@ import scala.concurrent.{ExecutionContext, Future}
 class ApplicationController @Inject()(
                                        val controllerComponents: ControllerComponents,
                                        dataRepository: DataRepository,
-                                       libraryService: LibraryService
+                                       libraryService: LibraryService,
+
                                      )(implicit ec: ExecutionContext) extends BaseController with play.api.i18n.I18nSupport{
 
   def index(): Action[AnyContent] = Action.async { implicit request =>
@@ -42,8 +43,6 @@ class ApplicationController @Inject()(
     }
   }
 
-
-
   def update(id: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
     request.body.validate[DataModel] match {
       case JsSuccess(dataModel, _) =>
@@ -66,19 +65,14 @@ class ApplicationController @Inject()(
         case _ => NotFound
       }
     }
-
   }
+
   def getGoogleBook(search: String, term: String): Action[AnyContent] = Action.async { implicit request =>
     libraryService.getGoogleBook(search = search, term = term).value.map {
       case Right(book) => Ok(Json.toJson(book))
-      case Left(apiError) => apiError match {
-        case APIError.BadAPIResponse(statusCode, message) => Status(statusCode)(Json.obj("error" -> message))
-        case _ => InternalServerError(Json.obj("error" -> "An unexpected error occurred"))
-      }
+      case Left(error) => InternalServerError(error.reason)
     }
   }
-
-
 
 
 
@@ -88,8 +82,6 @@ class ApplicationController @Inject()(
       case Left(error) => Status(if (error.upstreamStatus == 404) NOT_FOUND else INTERNAL_SERVER_ERROR)(Json.toJson(error.reason))
     }
   }
-
-
 
   def updateField(id: String, fieldName: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
     (request.body \ "value").validate[JsValue] match {
@@ -104,30 +96,25 @@ class ApplicationController @Inject()(
 
   def getByISBN(isbn: String): Action[AnyContent] = Action.async { implicit request =>
     libraryService.getByISBN(isbn).value.map {
-      case Right(book) => Ok(Json.toJson(book))
-      case Left(error) =>
-        val statusCode = error match {
-          case APIError.BadAPIResponse(404, _) => NOT_FOUND
-          case _ => INTERNAL_SERVER_ERROR
-        }
-        Status(statusCode)(Json.toJson(error.reason))
+      case Right(dataModel) => Ok(Json.toJson(dataModel))
+      case Left(error) => InternalServerError(error.reason)
     }
   }
 
 
 
-  def example(id: String): Action[AnyContent] = Action.async { implicit request =>
-    dataRepository.read(id).map {
-      case Right(dataModel) => Ok(views.html.example(dataModel))
-      case Left(error) =>
-        val statusCode = error match {
-          case APIError.BadAPIResponse(404, _) => NOT_FOUND
-          case _ => INTERNAL_SERVER_ERROR
-        }
-        Status(statusCode)(Json.toJson(error.reason))
-    }
-  }
 
+  //  def example(id: String): Action[AnyContent] = Action.async { implicit request =>
+//    dataRepository.read(id).map {
+//      case Right(dataModel) => Ok(views.html.example(dataModel))
+//      case Left(error) =>
+//        val statusCode = error match {
+//          case APIError.BadAPIResponse(404, _) => NOT_FOUND
+//          case _ => INTERNAL_SERVER_ERROR
+//        }
+//        Status(statusCode)(Json.toJson(error.reason))
+//    }
+//  }
 
   def addBook(): Action[AnyContent] = Action { implicit request =>
     Ok(views.html.addBook(DataModel.bookForm))
@@ -141,15 +128,7 @@ class ApplicationController @Inject()(
         Future.successful(BadRequest(views.html.addBook(formWithErrors)))
       },
       formData => {
-        // Use this data to create a new DataModel
-        val newBook = DataModel(
-          _id = formData._id,
-          name = formData.name,
-          description = formData.description,
-          pageCount = formData.pageCount,
-          isbn = formData.isbn
-        )
-        dataRepository.create(newBook).map {
+        dataRepository.create(formData).map {
           case Right(book) => Redirect(routes.ApplicationController.index)
           case Left(error) => InternalServerError("Error creating book")
         }
@@ -162,9 +141,4 @@ class ApplicationController @Inject()(
   def accessToken(implicit request: Request[_]): Option[CSRF.Token] = {
     CSRF.getToken
   }
-
-
-
-
-
 }

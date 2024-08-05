@@ -17,3 +17,4 @@ trait MockRepositoryTrait {
   def findByName(name: String): Future[Either[APIError.BadAPIResponse, Seq[DataModel]]]
   def updateField(id: String, fieldName: String, newValue: JsValue): Future[Either[APIError.BadAPIResponse, Long]]
 }
+
