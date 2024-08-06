@@ -20,6 +20,7 @@ GET     /library/google/:isbn          controllers.ApplicationController.getByIS
 # Example and view routes
 GET     /addBook/form       controllers.ApplicationController.addBook()
 POST    /addBook/form       controllers.ApplicationController.addBookForm()
+GET     /example/:id                controllers.ApplicationController.example(id: String)
 
 
 

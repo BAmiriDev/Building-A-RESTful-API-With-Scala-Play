@@ -1,4 +1,10 @@
 package controllers
+import play.api.mvc.{Action, AnyContent, ControllerComponents}
+import javax.inject.Inject
+import scala.concurrent.ExecutionContext
+import services.LibraryService
+import controllers.models.{APIError, DataModel}
+import views.html.myGoogleBook
 
 import controllers.models.{APIError, DataModel}
 import play.api.libs.json.{JsError, JsSuccess, JsValue, Json}
@@ -96,25 +102,20 @@ class ApplicationController @Inject()(
 
   def getByISBN(isbn: String): Action[AnyContent] = Action.async { implicit request =>
     libraryService.getByISBN(isbn).value.map {
-      case Right(dataModel) => Ok(Json.toJson(dataModel))
+      case Right(dataModel) => Ok(myGoogleBook(dataModel))
       case Left(error) => InternalServerError(error.reason)
     }
   }
 
 
 
+  def example(id: String): Action[AnyContent] = Action.async { implicit request =>
+    dataRepository.read(id).map {
+      case Right(dataModel) => Ok(views.html.example(dataModel))
+      case Left(error) => InternalServerError(error.reason)
+    }
+  }
 
-  //  def example(id: String): Action[AnyContent] = Action.async { implicit request =>
-//    dataRepository.read(id).map {
-//      case Right(dataModel) => Ok(views.html.example(dataModel))
-//      case Left(error) =>
-//        val statusCode = error match {
-//          case APIError.BadAPIResponse(404, _) => NOT_FOUND
-//          case _ => INTERNAL_SERVER_ERROR
-//        }
-//        Status(statusCode)(Json.toJson(error.reason))
-//    }
-//  }
 
   def addBook(): Action[AnyContent] = Action { implicit request =>
     Ok(views.html.addBook(DataModel.bookForm))
