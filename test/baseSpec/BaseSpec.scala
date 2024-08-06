@@ -35,7 +35,7 @@ trait BaseSpecWithApplication extends BaseSpec with GuiceOneServerPerSuite with 
   lazy val connector: LibraryConnector = injector.instanceOf[LibraryConnector]
   lazy val repoService: RepositoryService = injector.instanceOf[RepositoryService]
 
-  implicit val messagesApi = app.injector.instanceOf[MessagesApi]
+  implicit val messagesApi: MessagesApi = app.injector.instanceOf[MessagesApi]
   lazy val injector: Injector = app.injector
 
   override def fakeApplication(): Application =

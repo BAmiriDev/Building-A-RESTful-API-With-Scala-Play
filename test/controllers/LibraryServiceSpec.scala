@@ -1,8 +1,8 @@
 package controllers
 
-import controllers.models.{APIError, Book}
+import baseSpec.{BaseSpec, BaseSpecWithApplication}
+import controllers.models.{APIError, Book, DataModel}
 import org.scalatest.concurrent.ScalaFutures
-import org.scalatestplus.play.guice.GuiceOneAppPerSuite
 import org.scalatestplus.play.PlaySpec
 import org.scalamock.scalatest.MockFactory
 import play.api.libs.json.{JsValue, Json, OFormat}
@@ -10,41 +10,56 @@ import play.api.libs.json.{JsValue, Json, OFormat}
 import scala.concurrent.{ExecutionContext, Future}
 import cats.data.EitherT
 import connectors.LibraryConnector
+import org.scalatest.matchers.must.Matchers.convertToAnyMustWrapper
+import org.scalatestplus.play.guice.GuiceOneAppPerSuite
+import repositories.DataRepository
 import services.LibraryService
 
-class LibraryServiceSpec extends PlaySpec with MockFactory with ScalaFutures with GuiceOneAppPerSuite {
+class LibraryServiceSpec extends BaseSpec with MockFactory with ScalaFutures with GuiceOneAppPerSuite{
+
 
   val mockConnector: LibraryConnector = mock[LibraryConnector]
-  implicit val executionContext: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global
+  implicit val executionContext: ExecutionContext = app.injector.instanceOf[ExecutionContext]
   val testService = new LibraryService(mockConnector)
 
-  val gameOfThrones: JsValue = Json.obj(
-    "_id" -> "someId",
-    "name" -> "A Game of Thrones",
-    "description" -> "The best book!!!",
-    "pageCount" -> 100
+  val gameOfThronesJson = Json.obj(
+    "items" -> Json.arr(
+      Json.obj(
+        "id" -> "someId",
+        "volumeInfo" -> Json.obj(
+          "title" -> "A Game of Thrones",
+          "description" -> "The best book!!!",
+          "pageCount" -> 100,
+          "industryIdentifiers" -> Json.arr(
+            Json.obj(
+              "type" -> "ISBN_13",
+              "identifier" -> "1234567890"
+            )
+          )
+        )
+      )
+    )
   )
+  val gameOfThrones: Book = gameOfThronesJson.as[Book]
 
-  "getGoogleBook" should {
-
-    "return a book when getGoogleBook is called" in {
+  "LibraryService" should {
+    "return a DataModel when getGoogleBook is called" in {
       val url: String = "testUrl"
-      val expectedBook = Book(
+      val expectedDataModel = DataModel(
         _id = "someId",
         name = "A Game of Thrones",
         description = "The best book!!!",
         pageCount = 100,
         isbn = "1234567890"
-
       )
 
       (mockConnector.get[Book](_: String)(_: OFormat[Book], _: ExecutionContext))
         .expects(url, *, *)
-        .returning(EitherT.rightT[Future, APIError](gameOfThrones.as[Book]))
+        .returning(EitherT.rightT[Future, APIError](gameOfThrones))
         .once()
 
       whenReady(testService.getGoogleBook(urlOverride = Some(url), search = "", term = "").value) { result =>
-        result mustBe Right(expectedBook)
+        result.flatMap(Book.toDataModel(_).toRight(APIError.BadAPIResponse(500, "No items found in the book"))) mustBe Right(expectedDataModel)
       }
     }
 
@@ -57,7 +72,7 @@ class LibraryServiceSpec extends PlaySpec with MockFactory with ScalaFutures wit
         .once()
 
       whenReady(testService.getGoogleBook(urlOverride = Some(url), search = "", term = "").value) { result =>
-        result mustBe Left(APIError.BadAPIResponse(500, "API Error"))
+        result shouldBe Left(APIError.BadAPIResponse(500, "API Error"))
       }
     }
   }

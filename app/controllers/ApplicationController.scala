@@ -101,7 +101,7 @@ class ApplicationController @Inject()(
   }
 
   def getByISBN(isbn: String): Action[AnyContent] = Action.async { implicit request =>
-    libraryService.getByISBN(isbn).value.map {
+    libraryService.getByISBN(isbn, dataRepository).value.map {
       case Right(dataModel) => Ok(myGoogleBook(dataModel))
       case Left(error) => InternalServerError(error.reason)
     }

@@ -11,6 +11,18 @@ import uk.gov.hmrc.mongo.play.json.PlayMongoRepository
 import javax.inject.{Inject, Singleton}
 import scala.concurrent.{ExecutionContext, Future}
 
+
+trait MockRepositoryTrait {
+  def index(): Future[Either[APIError.BadAPIResponse, Seq[DataModel]]]
+  def create(book: DataModel): Future[Either[APIError.BadAPIResponse, DataModel]]
+  def read(id: String): Future[Either[APIError.BadAPIResponse, DataModel]]
+  def update(id: String, book: DataModel): Future[Either[APIError.BadAPIResponse, Long]]
+  def delete(id: String): Future[Either[APIError.BadAPIResponse, Long]]
+  def deleteAll(): Future[Unit]
+  def findByName(name: String): Future[Either[APIError.BadAPIResponse, Seq[DataModel]]]
+  def updateField(id: String, fieldName: String, newValue: JsValue): Future[Either[APIError.BadAPIResponse, Long]]
+}
+
 @Singleton
 class DataRepository @Inject() (
                                 mongoComponent: MongoComponent
