@@ -5,7 +5,7 @@ import controllers.models.{APIError, Book, DataModel}
 import org.scalatest.concurrent.ScalaFutures
 import org.scalatestplus.play.PlaySpec
 import org.scalamock.scalatest.MockFactory
-import play.api.libs.json.{JsValue, Json, OFormat}
+import play.api.libs.json.{JsObject, JsValue, Json, OFormat}
 
 import scala.concurrent.{ExecutionContext, Future}
 import cats.data.EitherT
@@ -22,7 +22,7 @@ class LibraryServiceSpec extends BaseSpec with MockFactory with ScalaFutures wit
   implicit val executionContext: ExecutionContext = app.injector.instanceOf[ExecutionContext]
   val testService = new LibraryService(mockConnector)
 
-  val gameOfThronesJson = Json.obj(
+  val gameOfThronesJson: JsObject = Json.obj(
     "items" -> Json.arr(
       Json.obj(
         "id" -> "someId",

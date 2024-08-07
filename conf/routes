@@ -14,6 +14,7 @@ DELETE  /api/:id                    controllers.ApplicationController.delete(id:
 # Google Books and Book routes
 GET     /library/google/:search/:term  controllers.ApplicationController.getGoogleBook(search: String, term: String)
 GET     /books/name/:name              controllers.ApplicationController.findByName(name: String)
+PUT     /books/:id/:fieldName           controllers.ApplicationController.updateField(id: String, fieldName: String)
 GET     /library/google/:isbn          controllers.ApplicationController.getByISBN(isbn: String)
 
 

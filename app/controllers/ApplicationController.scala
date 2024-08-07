@@ -89,6 +89,7 @@ class ApplicationController @Inject()(
     }
   }
 
+
   def updateField(id: String, fieldName: String): Action[JsValue] = Action.async(parse.json) { implicit request =>
     (request.body \ "value").validate[JsValue] match {
       case JsSuccess(newValue, _) =>

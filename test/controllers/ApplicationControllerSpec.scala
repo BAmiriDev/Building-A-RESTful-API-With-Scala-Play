@@ -13,10 +13,7 @@ import scala.concurrent.{ExecutionContext, Future}
 
 class ApplicationControllerSpec extends BaseSpecWithApplication {
 
-  // Use the lazy val repository from BaseSpecWithApplication
   implicit val ec: ExecutionContext = executionContext
-
-  // Directly use repository and service layers as per the original setup
   val TestApplicationController = new ApplicationController(component, repository, service)(ec)
 
   // Define a sample DataModel object for testing
