@@ -1,0 +1,13 @@
+@import controllers.models.DataModel
+
+@(dataModel: DataModel)
+
+@main("My Google Book") {
+<h1>Book Details</h1>
+<div>
+    <h2>@dataModel.name</h2>
+    <p><strong>Description:</strong> @dataModel.description</p>
+    <p><strong>Page Count:</strong> @dataModel.pageCount</p>
+    <p><strong>ISBN:</strong> @dataModel.isbn</p>
+</div>
+}
