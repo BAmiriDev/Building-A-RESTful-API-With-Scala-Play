@@ -1,1 +1,1 @@
-Content of the new file.
+Some updated content
